@@ -1,21 +1,26 @@
-* RRF 2025 - Processing Data Solutions	
+* RRF 2024 - Processing Data Template	
 *-------------------------------------------------------------------------------	
 * Loading data
 *------------------------------------------------------------------------------- 	
-
-	use "${data}/Raw/TZA_CCT_baseline.dta", clear
+	
+	* Load TZA_CCT_baseline.dta
+	use "${data}/Raw/TZA_CCT_baseline", clear
 	
 *-------------------------------------------------------------------------------	
 * Checking for unique ID and fixing duplicates
 *------------------------------------------------------------------------------- 		
+	
+	
+	
+
 
 	* Identify duplicates 
 	ieduplicates	hhid ///
 					using "${outputs}/duplicates.xlsx", ///
 					uniquevars(key) ///
-					keepvars(enid duration submissionday) ///
+					keepvars(vid enid submissionday duration) ///
 					nodaily
-					
+	
 	
 *-------------------------------------------------------------------------------	
 * Define locals to store variables for each level
@@ -42,6 +47,52 @@
 		
 	
 *-------------------------------------------------------------------------------	
+* Tidy Data: HH-member 
+*-------------------------------------------------------------------------------*
+
+	preserve 
+
+		keep `mem_vars' `ids'
+
+		* tidy: reshape tp hh-mem level 
+		reshape long `reshape_mem', i(`ids') j (member)
+	
+		
+		
+		* clean variable names 
+		rename *_ *
+		
+		* drop missings 
+		drop if mi(gender)
+		
+		* Cleaning using iecodebook
+		// recode the non-responses to extended missing
+		// add variable/value labels
+		// create a template first, then edit the template and change the syntax to 
+		// iecodebook apply
+		
+		*iecodebook template 	using ///
+								*"${outputs}/hh_mem_codebook.xlsx", replace
+								
+		iecodebook apply 	using ///
+								"${outputs}/hh_mem_codebook.xlsx"
+								
+								
+		isid hhid member, sort
+		
+		
+		
+		* Save data: Use iesave to save the clean data and create a report 
+		iesave 	"${data}/Intermediate/TZA_CCT_HH_mem_.dta", ///
+				idvars(hhid member)  version(15) replace ///
+				report(path("${outputs}/TZA_CCT_HH_mem_report.csv") replace)  
+		
+	 
+	restore			 
+				
+		
+		
+*-------------------------------------------------------------------------------	
 * Tidy Data: HH
 *-------------------------------------------------------------------------------	
 
@@ -50,8 +101,13 @@
 		* Keep HH vars
 		keep `ids' `hh_vars'
 		
-		* Check for correct data type
-		ds, has(type string)		
+		* Check if data type is string
+				
+		
+		* Fix data types 
+		* numeric should be numeric
+		* dates should be in the date format
+		* Categorical should have value labels 
 		
 		* Submissionday should be date 
 		gen submissiondate = date(submissionday, "YMD hms")
@@ -62,11 +118,15 @@
 		
 		* ar_farm_unit should be categorical 
 		encode ar_farm_unit, gen(ar_unit)
-	
+			
 		* clean crop_other: add info to crop variable
 		replace crop_other = proper(crop_other)
 		
 		* check labelbook for crop to add values for new crops 
+		
+		des crop // see that labelbook for crop is df_CROP and no values for crops like coconut and sesame
+		ta crop_other, m
+		
 		labelbook df_CROP
 		
 		replace crop = 40 if regex(crop_other, "Coconut") == 1
@@ -74,17 +134,17 @@
 		
 		* adding value labels for new crops
 		label define df_CROP 40 "Coconut" 41 "Sesame", add
-				
 		
 		* Turn numeric variables with negative values into missings
 		ds, has(type numeric)
+		
 		global numVars `r(varlist)'
 
 		foreach numVar of global numVars {
 			
-			qui recode 	`numVar' 	(-88 	= .d) // don't know
+		 qui recode 	`numVar' 	(-88 	= .d) // don't know
 		}	
-		
+		 
 		* Explore variables for outliers
 		sum food_cons nonfood_cons ar_farm, det
 		
@@ -97,14 +157,15 @@
 		
 		isid hhid, sort 
 		
+		
 		* Save data		
-		iesave 	"${data}/Intermediate/TZA_CCT_HH.dta", ///
+		iesave 	"${data}/Intermediate/TZA_CCT_HH_.dta", ///
 				idvars(hhid)  version(15) replace ///
 				report(path("${outputs}/TZA_CCT_HH_report.csv") replace)  
 		
 	restore
 	
-*-------------------------------------------------------------------------------	
+*----------------------------	
 * Tidy Data: HH-member 
 *-------------------------------------------------------------------------------*
 
@@ -132,12 +193,12 @@
 		isid hhid member, sort 						
 		
 		* Save data: Use iesave to save the clean data and create a report 
-		iesave 	"${data}/Intermediate/TZA_CCT_HH_mem.dta", ///
+		iesave 	"${data}/Intermediate/TZA_CCT_HH_mem_.dta", ///
 				idvars(hhid member)  version(15) replace ///
-				report(path("${outputs}/TZA_CCT_HH_mem_report.csv") replace)  
+				report(path("${outputs}/TZA_CCT_HH_mem_report_.csv") replace)  
 				
 	restore			
-	
+	 
 *-------------------------------------------------------------------------------	
 * Tidy Data: Secondary data
 *------------------------------------------------------------------------------- 	
@@ -161,8 +222,8 @@
 	* Save
 	keeporder district n_*
 	
-	save "${data}/Intermediate/TZA_amenity_tidy_.dta", replace
+	save "${data}/Intermediate/TZA_amenity_tidy.dta", replace
 
-	
+		
 ****************************************************************************end!
 	
