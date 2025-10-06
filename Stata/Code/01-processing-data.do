@@ -152,6 +152,7 @@
 	
 	encode adm2_en , gen(district) 
 	
+
 	* Label vars 
 	lab var district "District"
 	lab var n_school "No. of schools"
@@ -161,7 +162,7 @@
 	* Save
 	keeporder district n_*
 	
-	save "${data}/Intermediate/TZA_amenity_tidy_.dta", replace
+	save "${data}/Intermediate/TZA_amenity_tidy.dta", replace
 
 	
 ****************************************************************************end!

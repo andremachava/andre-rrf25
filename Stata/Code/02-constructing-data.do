@@ -100,7 +100,6 @@
 *-------------------------------------------------------------------------------	
 * Data construction: Secondary data
 *------------------------------------------------------------------------------- 	
-	
 	use "${data}/Intermediate/TZA_amenity_tidy.dta", clear
 	
 	* Total medical facilities 
